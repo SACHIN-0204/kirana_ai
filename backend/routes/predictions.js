@@ -4,16 +4,15 @@ const Sale = require('../models/Sale');
 const Product = require('../models/Product');
 require('dotenv').config();
 
-<<<<<<< HEAD
+
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL?.replace(/\/$/, '');
 
 if (!ML_SERVICE_URL) {
   console.error('❌ ML_SERVICE_URL is not configured');
 }
 
-=======
+
 // Helper: fetch sales + call ML
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
 async function predictForProduct(productId, days = 7) {
   const since = new Date();
   since.setDate(since.getDate() - 90);
@@ -23,7 +22,6 @@ async function predictForProduct(productId, days = 7) {
     date: { $gte: since }
   }).sort({ date: 1 });
 
-<<<<<<< HEAD
   console.log(
     `📊 Product ${productId}: ${sales.length} sales records found`
   );
@@ -180,60 +178,13 @@ router.get('/batch/all', async (req, res) => {
       Math.max(parseInt(req.query.days) || 7, 1),
       30
     );
-
-=======
-  if (sales.length < 10) return null;
-
-  const timeSeriesData = sales.map(s => ({
-    ds: s.date.toISOString().split('T')[0],
-    y: s.quantitySold
-  }));
-
-  const mlResponse = await axios.post(
-    `${process.env.ML_SERVICE_URL}/predict`,
-    { data: timeSeriesData, periods: days }
-  );
-
-  return mlResponse.data;
-}
-
-// ── Single product prediction ──────────────────────────────
-router.get('/:productId', async (req, res) => {
-  try {
-    const result = await predictForProduct(
-      req.params.productId,
-      parseInt(req.query.days) || 7
-    );
-    if (!result) {
-      return res.status(400).json({
-        error: 'Not enough data. Need at least 10 days of sales history.'
-      });
-    }
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── Batch prediction for ALL products ─────────────────────
-router.get('/batch/all', async (req, res) => {
-  try {
-    const days = parseInt(req.query.days) || 7;
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
     const products = await Product.find();
 
     const results = await Promise.all(
       products.map(async (product) => {
         try {
-<<<<<<< HEAD
-          const prediction = await predictForProduct(
-            product._id,
-            days
-          );
-
-=======
           const prediction = await predictForProduct(product._id, days);
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
+
           if (!prediction) {
             return {
               productId: product._id,
@@ -245,48 +196,29 @@ router.get('/batch/all', async (req, res) => {
               forecast: [],
               totalPredictedDemand: 0,
               suggestedOrderQty: 0,
-<<<<<<< HEAD
               urgency: 'UNKNOWN'
             };
           }
 
-          const demand =
-            prediction.totalPredictedDemand || 0;
-
-          const gap =
-            demand - product.currentStock;
-
+          const demand = Number(prediction.totalPredictedDemand) || 0;
+          const currentStock = Number(product.currentStock) || 0;
+          const minThreshold = Number(product.minThreshold) || 0;
+          const gap = demand - currentStock;
           const urgency =
-            product.currentStock <= product.minThreshold
+            currentStock <= minThreshold
               ? 'CRITICAL'
               : gap > 0
               ? 'ORDER'
               : 'SUFFICIENT';
-=======
-              urgency: 'UNKNOWN',
-            };
-          }
-
-          const demand = prediction.totalPredictedDemand;
-          const gap    = demand - product.currentStock;
-          const urgency =
-            product.currentStock <= product.minThreshold ? 'CRITICAL' :
-            gap > 0                                      ? 'ORDER'    :
-                                                           'SUFFICIENT';
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
 
           return {
             productId: product._id,
             productName: product.name,
             unit: product.unit,
-            currentStock: product.currentStock,
-            minThreshold: product.minThreshold,
+            currentStock,
+            minThreshold,
             totalPredictedDemand: demand,
-<<<<<<< HEAD
-            suggestedOrderQty: Math.max(
-              0,
-              Math.ceil(gap)
-            ),
+            suggestedOrderQty: Math.max(0, Math.ceil(gap)),
             urgency,
             forecast: prediction.forecast || [],
             modelInfo: prediction.modelInfo
@@ -298,30 +230,17 @@ router.get('/batch/all', async (req, res) => {
             error.message
           );
 
-=======
-            suggestedOrderQty: Math.max(0, Math.ceil(gap)),
-            urgency,
-            forecast: prediction.forecast,
-            modelInfo: prediction.modelInfo,
-          };
-        } catch {
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
           return {
             productId: product._id,
             productName: product.name,
             status: 'ERROR',
-<<<<<<< HEAD
             error: error.message,
-            urgency: 'UNKNOWN'
-=======
             urgency: 'UNKNOWN',
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
           };
         }
       })
     );
 
-<<<<<<< HEAD
     const order = {
       CRITICAL: 0,
       ORDER: 1,
@@ -334,35 +253,18 @@ router.get('/batch/all', async (req, res) => {
         (order[a.urgency] ?? 3) -
         (order[b.urgency] ?? 3)
     );
-=======
-    // Sort: CRITICAL → ORDER → SUFFICIENT
-    const order = { CRITICAL: 0, ORDER: 1, SUFFICIENT: 2, UNKNOWN: 3 };
-    results.sort((a, b) => (order[a.urgency] ?? 3) - (order[b.urgency] ?? 3));
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
 
     res.json({
       generatedAt: new Date().toISOString(),
       forecastDays: days,
       totalProducts: products.length,
-<<<<<<< HEAD
-
       summary: {
-        critical: results.filter(
-          (r) => r.urgency === 'CRITICAL'
-        ).length,
-
-        order: results.filter(
-          (r) => r.urgency === 'ORDER'
-        ).length,
-
-        sufficient: results.filter(
-          (r) => r.urgency === 'SUFFICIENT'
-        ).length
+        critical: results.filter((result) => result.urgency === 'CRITICAL').length,
+        order: results.filter((result) => result.urgency === 'ORDER').length,
+        sufficient: results.filter((result) => result.urgency === 'SUFFICIENT').length
       },
-
       products: results
     });
-
   } catch (err) {
     console.error(
       '❌ Batch prediction error:',
@@ -375,19 +277,4 @@ router.get('/batch/all', async (req, res) => {
   }
 });
 
-
-=======
-      summary: {
-        critical:   results.filter(r => r.urgency === 'CRITICAL').length,
-        order:      results.filter(r => r.urgency === 'ORDER').length,
-        sufficient: results.filter(r => r.urgency === 'SUFFICIENT').length,
-      },
-      products: results,
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
 module.exports = router;

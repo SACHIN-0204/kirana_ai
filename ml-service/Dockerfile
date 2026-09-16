@@ -1,13 +1,11 @@
 FROM python:3.11-slim
-<<<<<<< HEAD
 
 WORKDIR /app
 
-=======
 WORKDIR /app
 
 # ✅ All system deps Prophet needs
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
+
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
@@ -15,21 +13,6 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-<<<<<<< HEAD
-COPY requirements.txt .
-
-RUN pip install --upgrade pip setuptools wheel
-
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-RUN python -c "from prophet import Prophet; print('Prophet OK')"
-
-EXPOSE 8000
-
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-8000} --workers 1 --timeout 180"]
-=======
 # ✅ Upgrade pip first
 RUN pip install --upgrade pip setuptools wheel
 
@@ -57,4 +40,3 @@ CMD ["gunicorn", "app:app", \
      "--workers", "1", \
      "--timeout", "120", \
      "--preload"]
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
