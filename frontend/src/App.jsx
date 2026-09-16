@@ -10,6 +10,7 @@ import ReorderReport from './pages/ReorderReport';
 import RecordSale from './pages/RecordSales';
 import BatchPredictions from './pages/BatchPredictions';
 import CategorySummary from './pages/CategorySummary';
+<<<<<<< HEAD
 import { warmUpServices } from './api';
 
 export default function App() {
@@ -18,6 +19,11 @@ export default function App() {
   warmUpServices(); // ping on first load
 }, []);
 
+=======
+
+export default function App() {
+
+>>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
    // Auto-check low stock on app load
   useEffect(() => {
     getProducts().then(res => {
