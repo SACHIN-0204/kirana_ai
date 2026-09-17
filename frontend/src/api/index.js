@@ -38,7 +38,6 @@ export const getCategorySummary = (days)     => API.get(`/sales/summary/category
 
 export const getPrediction    = (id, days)  => API.get(`/predictions/${id}?days=${days}`);
 export const getBatchPredict  = (days = 7)  => API.get(`/predictions/batch/all?days=${days}`);
-<<<<<<< HEAD
 export const warmUpServices = async () => {
   try {
     await Promise.all([
@@ -51,9 +50,6 @@ export const warmUpServices = async () => {
     console.log('Services warmed up ✅');
 
   } catch {
-     console.log('Warm-up ping sent');
+    console.log('Warm-up ping sent');
   }
-}
-=======
-
->>>>>>> 3ae337077a8db6499605caf68daa20b177923c72
+};
