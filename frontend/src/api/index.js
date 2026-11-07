@@ -8,6 +8,14 @@ const API = axios.create({
   timeout: 30000,  // 30s timeout (Render free tier cold starts)
 });
 
+// ── Auth token handling ──
+let onUnauthorized = null;
+export const setAuthToken = (token) => {
+  if (token) API.defaults.headers.common.Authorization = `Bearer ${token}`;
+  else delete API.defaults.headers.common.Authorization;
+};
+export const setUnauthorizedHandler = (fn) => { onUnauthorized = fn; };
+
 // Request interceptor — log in dev
 API.interceptors.request.use(config => {
   if (process.env.NODE_ENV === 'development') {
@@ -22,9 +30,29 @@ API.interceptors.response.use(
   err => {
     const msg = err.response?.data?.error || err.message || 'Network error';
     console.error('API Error:', msg);
+    // Expired/invalid session → force logout (but not for failed login attempts)
+    if (err.response?.status === 401 && !err.config?.url?.includes('/auth/login')) {
+      onUnauthorized?.();
+    }
     return Promise.reject(err);
   }
 );
+
+// Auth
+export const loginRequest   = (email, password) => API.post('/auth/login', { email, password });
+export const getMe          = ()          => API.get('/auth/me');
+export const changePassword = (currentPassword, newPassword) =>
+  API.post('/auth/change-password', { currentPassword, newPassword });
+
+// Users (admin)
+export const getUsers   = ()         => API.get('/users');
+export const createUser = (data)     => API.post('/users', data);
+export const updateUser = (id, data) => API.put(`/users/${id}`, data);
+export const deleteUser = (id)       => API.delete(`/users/${id}`);
+
+// Sales management (admin)
+export const updateSale = (id, data) => API.put(`/sales/${id}`, data);
+export const deleteSale = (id)       => API.delete(`/sales/${id}`);
 
 export const getProducts      = ()          => API.get('/products');
 export const createProduct      = (data)     => API.post('/products', data);

@@ -1,5 +1,7 @@
 const router = require('express').Router();
 const Sale = require('../models/Sale');
+const Product = require('../models/Product');
+const { requireAdmin } = require('../middleware/auth');
 
 // GET sales for a product (last N days)
 router.get('/:productId', async (req, res) => {
@@ -79,7 +81,7 @@ router.get('/summary/category', async (req, res) => {
 });
 
 // ── POST record single sale + update stock ────────────────
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   try {
     const { productId, productName, date, quantitySold, revenue } = req.body;
 
@@ -100,7 +102,7 @@ router.post('/', async (req, res) => {
 });
 
 // ── POST bulk record multiple sales at once ───────────────
-router.post('/bulk', async (req, res) => {
+router.post('/bulk', requireAdmin, async (req, res) => {
   try {
     const { sales } = req.body; // array of sale objects
 
@@ -123,6 +125,36 @@ router.post('/bulk', async (req, res) => {
       sales: created
     });
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// ── PUT edit a sale (admin) — adjusts stock by the quantity difference ──
+router.put('/:id', requireAdmin, async (req, res) => {
+  try {
+    const sale = await Sale.findById(req.params.id);
+    if (!sale) return res.status(404).json({ error: 'Sale not found' });
+
+    const oldQty = sale.quantitySold;
+    if (req.body.date !== undefined) sale.date = new Date(req.body.date);
+    if (req.body.quantitySold !== undefined) sale.quantitySold = Number(req.body.quantitySold);
+    if (req.body.revenue !== undefined) sale.revenue = Number(req.body.revenue);
+    await sale.save();
+
+    const diff = sale.quantitySold - oldQty;
+    if (diff !== 0) {
+      await Product.findByIdAndUpdate(sale.productId, { $inc: { currentStock: -diff } });
+    }
+    res.json(sale);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// ── DELETE a sale (admin) — returns the quantity to stock ──
+router.delete('/:id', requireAdmin, async (req, res) => {
+  try {
+    const sale = await Sale.findByIdAndDelete(req.params.id);
+    if (!sale) return res.status(404).json({ error: 'Sale not found' });
+    await Product.findByIdAndUpdate(sale.productId, { $inc: { currentStock: sale.quantitySold } });
+    res.json({ message: 'Sale deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 module.exports = router;
