@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     g++ \
     build-essential \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -21,7 +22,5 @@ RUN python -c "from prophet import Prophet; print('Prophet OK')"
 
 EXPOSE 8000
 
-CMD ["gunicorn", "app:app", \
-     "--bind", "0.0.0.0:$PORT", \
-     "--workers", "1", \
-     "--timeout", "180"]
+# Shell form so ${PORT} is expanded (defaults to 8000 for docker compose)
+CMD gunicorn app:app --bind 0.0.0.0:${PORT:-8000} --workers 1 --timeout 180

@@ -204,9 +204,13 @@ router.get('/batch/all', async (req, res) => {
           const currentStock = Number(product.currentStock) || 0;
           const minThreshold = Number(product.minThreshold) || 0;
           const gap = demand - currentStock;
+          const daysLeft =
+            demand > 0 ? currentStock / (demand / days) : Infinity;
           const urgency =
-            currentStock <= minThreshold
+            currentStock <= minThreshold || daysLeft <= 1
               ? 'CRITICAL'
+              : daysLeft <= days / 2
+              ? 'HIGH'
               : gap > 0
               ? 'ORDER'
               : 'SUFFICIENT';
@@ -243,15 +247,16 @@ router.get('/batch/all', async (req, res) => {
 
     const order = {
       CRITICAL: 0,
-      ORDER: 1,
-      SUFFICIENT: 2,
-      UNKNOWN: 3
+      HIGH: 1,
+      ORDER: 2,
+      SUFFICIENT: 3,
+      UNKNOWN: 4
     };
 
     results.sort(
       (a, b) =>
-        (order[a.urgency] ?? 3) -
-        (order[b.urgency] ?? 3)
+        (order[a.urgency] ?? 4) -
+        (order[b.urgency] ?? 4)
     );
 
     res.json({
@@ -260,6 +265,7 @@ router.get('/batch/all', async (req, res) => {
       totalProducts: products.length,
       summary: {
         critical: results.filter((result) => result.urgency === 'CRITICAL').length,
+        high: results.filter((result) => result.urgency === 'HIGH').length,
         order: results.filter((result) => result.urgency === 'ORDER').length,
         sufficient: results.filter((result) => result.urgency === 'SUFFICIENT').length
       },
